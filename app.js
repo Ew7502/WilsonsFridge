@@ -3,8 +3,8 @@ const supabaseUrl = 'https://nedhlhgmuvssjmoivduz.supabase.co';
 const supabaseKey = 'sb_publishable_gV2ohpJdj-qyQKtrvXv_dg_gm0WkbIR';
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-// Global state
 let currentItems = [];
+let html5QrcodeScanner = null; // Variable for our scanner
 
 // --- 2. AUTHENTICATION ---
 async function login() {
@@ -60,8 +60,10 @@ async function addItem(event) {
 
     if (!error) {
         alert("Added to fridge!");
+        // We will keep them on the Add Item page so they can add more things quickly!
+        document.getElementById('item-name').value = ''; 
+        document.getElementById('item-qty').value = '1';
         fetchItems(); 
-        showPage('stock'); 
     }
 }
 
@@ -71,31 +73,74 @@ async function deleteItem(id) {
     showPage(document.getElementById('content-area').dataset.currentPage); 
 }
 
-// NEW: Function to update the quantity up or down!
 async function updateQuantity(id, currentQty, change) {
     const newQty = currentQty + change;
-    
-    // Don't let it go to 0 or negative. Use the Remove button for that!
     if (newQty < 1) return; 
 
-    // Tell Supabase to update just this one number
     const { error } = await supabaseClient
         .from('fridge_items')
         .update({ quantity: newQty })
         .eq('id', id);
 
     if (!error) {
-        await fetchItems(); // Get fresh data
-        showPage(document.getElementById('content-area').dataset.currentPage); // Refresh page
+        await fetchItems(); 
+        showPage(document.getElementById('content-area').dataset.currentPage); 
     }
 }
 
+// --- 4. BARCODE SCANNER MAGIC ---
+function startScanner() {
+    document.getElementById('reader-container').classList.remove('hidden');
+    
+    if (!html5QrcodeScanner) {
+        // Sets up the camera box
+        html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", { fps: 10, qrbox: {width: 250, height: 150} }, false);
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    }
+}
 
-// --- 4. PAGE RENDERING ---
+async function onScanSuccess(decodedText, decodedResult) {
+    // 1. Stop the scanner once we get a barcode
+    html5QrcodeScanner.clear();
+    html5QrcodeScanner = null;
+    document.getElementById('reader-container').classList.add('hidden');
+    
+    document.getElementById('item-name').value = "Looking up item...";
+
+    // 2. Ask the global food database what this barcode is
+    try {
+        const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${decodedText}.json`);
+        const data = await response.json();
+        
+        if (data.status === 1 && data.product.product_name) {
+            document.getElementById('item-name').value = data.product.product_name;
+        } else {
+            document.getElementById('item-name').value = "";
+            alert("Barcode recognized, but we couldn't find the exact food name in the database. You'll have to type this one in!");
+        }
+    } catch (err) {
+        document.getElementById('item-name').value = "";
+        alert("Error looking up barcode.");
+    }
+}
+
+function onScanFailure(error) {
+    // It constantly fails while trying to find a barcode, so we just ignore this
+}
+
+
+// --- 5. PAGE RENDERING ---
 function showPage(page) {
     const content = document.getElementById('content-area');
     content.dataset.currentPage = page; 
     content.innerHTML = ''; 
+
+    // Clean up scanner if we leave the page
+    if (page !== 'additem' && html5QrcodeScanner) {
+        html5QrcodeScanner.clear();
+        html5QrcodeScanner = null;
+    }
 
     if (page === 'home') {
         content.innerHTML = `
@@ -127,7 +172,6 @@ function showPage(page) {
         currentItems.forEach(item => {
             if(!item.use_by_date || item.category.includes('Reserved')) return;
             const html = createItemHTML(item);
-            
             if(item.use_by_date <= today) document.getElementById('col-today').innerHTML += html;
             else document.getElementById('col-week').innerHTML += html; 
         });
@@ -144,10 +188,18 @@ function showPage(page) {
     else if (page === 'additem') {
         content.innerHTML = `
             <h2>Add New Item</h2>
+            
+            <button type="button" onclick="startScanner()" style="background: var(--teal-light); margin-bottom: 15px;">📷 Scan Barcode</button>
+            
+            <div id="reader-container" class="hidden" style="max-width: 400px; margin-bottom: 15px; background: white; padding: 10px; border-radius: 8px;">
+                <div id="reader"></div>
+                <button onclick="html5QrcodeScanner.clear(); document.getElementById('reader-container').classList.add('hidden');" style="margin-top: 10px; background: var(--danger);">Cancel Scan</button>
+            </div>
+
             <form onsubmit="addItem(event)" style="max-width: 400px; background: white; padding: 20px; border-radius: 8px;">
                 <div class="form-group">
                     <label>Item Name *</label>
-                    <input type="text" id="item-name" required>
+                    <input type="text" id="item-name" required placeholder="Type name or scan barcode above">
                 </div>
                 <div class="form-group">
                     <label>Categories (Select all that apply)</label>
@@ -172,7 +224,6 @@ function showPage(page) {
     }
 }
 
-// UPDATE: We added simple +/- buttons next to the quantity
 function createItemHTML(item) {
     const dateText = item.use_by_date ? `<br><small>Use by: ${item.use_by_date}</small>` : '';
     return `
@@ -195,15 +246,12 @@ function createItemHTML(item) {
 window.renderList = function(type) {
     const area = document.getElementById('sub-list-area');
     area.innerHTML = `<h3>${type}</h3>`;
-    
     let filtered = currentItems.filter(i => !i.category.includes('Reserved'));
-    
     if (type !== 'All Snacks') {
         filtered = filtered.filter(i => i.category.includes(type));
     } else {
         filtered = filtered.filter(i => i.category.includes('Savoury') || i.category.includes('Sweet'));
     }
-    
     if(filtered.length === 0) area.innerHTML += "<p>Nothing here right now!</p>";
     filtered.forEach(item => area.innerHTML += createItemHTML(item));
 }
@@ -211,7 +259,6 @@ window.renderList = function(type) {
 function checkExpiredItems() {
     const today = new Date().toISOString().split('T')[0];
     const expired = currentItems.filter(i => i.use_by_date && i.use_by_date <= today && !i.category.includes('Reserved'));
-    
     const alertBox = document.getElementById('alerts-container');
     if (expired.length > 0) {
         alertBox.innerHTML = `<div class="alert-banner">⚠️ Mum! You have ${expired.length} item(s) expiring today or already overdue! Check the Dates tab.</div>`;
