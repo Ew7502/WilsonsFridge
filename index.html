@@ -1,1 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wilson Fridge Manager</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
 
+    <div id="login-screen" class="screen">
+        <div class="login-box">
+            <h1>Wilson Fridge</h1>
+            <p>Please sign in</p>
+            <input type="email" id="email-input" value="family@wilsons.com" readonly>
+            <input type="password" id="password-input" placeholder="Enter Password">
+            <button onclick="login()">Sign In</button>
+            <p id="login-error" class="error"></p>
+        </div>
+    </div>
+
+    <div id="app-screen" class="screen hidden">
+        <div class="sidebar">
+            <h2>Wilson Fridge</h2>
+            <ul>
+                <li onclick="showPage('home')">Home</li>
+                <li onclick="showPage('snacks')">Snacks</li>
+                <li onclick="showPage('dates')">Dates</li>
+                <li onclick="showPage('donoteat')">DO NOT EAT</li>
+                <li onclick="showPage('stock')">Stock</li>
+                <li onclick="showPage('additem')">➕ Add Item</li>
+            </ul>
+            <button class="logout-btn" onclick="logout()">Log Out</button>
+        </div>
+
+        <div class="main-content">
+            <div id="alerts-container"></div>
+            
+            <div id="content-area">
+                </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
