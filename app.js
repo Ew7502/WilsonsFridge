@@ -1,8 +1,10 @@
 // --- 1. SETUP SUPABASE ---
-// IMPORTANT: Replace these with your actual keys from Supabase settings!
+// IMPORTANT: Replace these with your actual keys from Supabase!
 const supabaseUrl = 'https://nedhlhgmuvssjmoivduz.supabase.co';
 const supabaseKey = 'sb_publishable_gV2ohpJdj-qyQKtrvXv_dg_gm0WkbIR';
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+// CHANGE: We renamed this to 'supabaseClient' so it doesn't clash!
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
 // Global state
 let currentItems = [];
@@ -13,8 +15,8 @@ async function login() {
     const password = document.getElementById('password-input').value;
     const errorMsg = document.getElementById('login-error');
 
-    // Securely checks the password on Supabase servers!
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    // CHANGE: We use 'supabaseClient' here now
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
     if (error) {
         errorMsg.textContent = "Incorrect password. Try again!";
@@ -27,7 +29,7 @@ async function login() {
 }
 
 async function logout() {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
     document.getElementById('app-screen').classList.add('hidden');
     document.getElementById('login-screen').classList.remove('hidden');
     document.getElementById('password-input').value = '';
@@ -35,7 +37,7 @@ async function logout() {
 
 // --- 3. DATABASE OPERATIONS ---
 async function fetchItems() {
-    const { data, error } = await supabase.from('fridge_items').select('*');
+    const { data, error } = await supabaseClient.from('fridge_items').select('*');
     if (!error) {
         currentItems = data;
         checkExpiredItems(); // Alert Mum if needed!
@@ -49,7 +51,7 @@ async function addItem(event) {
     const category = document.getElementById('item-category').value;
     const qty = document.getElementById('item-qty').value;
 
-    const { error } = await supabase.from('fridge_items').insert([
+    const { error } = await supabaseClient.from('fridge_items').insert([
         { name: name, use_by_date: date, category: category, quantity: qty }
     ]);
 
@@ -61,7 +63,7 @@ async function addItem(event) {
 }
 
 async function deleteItem(id) {
-    await supabase.from('fridge_items').delete().eq('id', id);
+    await supabaseClient.from('fridge_items').delete().eq('id', id);
     await fetchItems(); // Refresh data
     showPage(document.getElementById('content-area').dataset.currentPage); // Refresh current view
 }
@@ -91,7 +93,6 @@ function showPage(page) {
     }
     else if (page === 'dates') {
         const today = new Date().toISOString().split('T')[0];
-        // Note: Real date math usually requires a library, but here's a simple categorization.
         content.innerHTML = `
             <h2>Use By Dates</h2>
             <div class="grid-3-col">
@@ -104,8 +105,10 @@ function showPage(page) {
         currentItems.forEach(item => {
             if(!item.use_by_date || item.category === 'Reserved') return;
             const html = createItemHTML(item);
+            
+            // Basic date logic for display
             if(item.use_by_date <= today) document.getElementById('col-today').innerHTML += html;
-            else document.getElementById('col-week').innerHTML += html; // Simplified for this example
+            else document.getElementById('col-week').innerHTML += html; 
         });
     }
     else if (page === 'donoteat') {
