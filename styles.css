@@ -1,1 +1,169 @@
+:root {
+    --teal-dark: #004c4c;
+    --teal-main: #008080;
+    --teal-light: #66b2b2;
+    --teal-bg: #e0f2f1;
+    --white: #ffffff;
+    --text-dark: #333333;
+    --danger: #e53935;
+}
 
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--teal-bg);
+    color: var(--text-dark);
+}
+
+.screen {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Login Styling */
+#login-screen {
+    justify-content: center;
+    align-items: center;
+}
+
+.login-box {
+    background: var(--white);
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    text-align: center;
+    border-top: 5px solid var(--teal-main);
+}
+
+.login-box input {
+    display: block;
+    width: 90%;
+    margin: 10px auto;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+button {
+    background-color: var(--teal-main);
+    color: var(--white);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+button:hover {
+    background-color: var(--teal-dark);
+}
+
+.error { color: var(--danger); font-size: 0.9em; }
+
+/* Main App Layout */
+.sidebar {
+    width: 250px;
+    background-color: var(--teal-dark);
+    color: var(--white);
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar h2 {
+    text-align: center;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--teal-light);
+    margin: 0;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex-grow: 1;
+}
+
+.sidebar li {
+    padding: 15px 20px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    transition: background 0.3s;
+}
+
+.sidebar li:hover {
+    background-color: var(--teal-main);
+}
+
+.logout-btn {
+    margin: 20px;
+    background-color: var(--danger);
+}
+
+.main-content {
+    flex-grow: 1;
+    padding: 30px;
+    overflow-y: auto;
+}
+
+/* Item Lists & Cards */
+.item-card {
+    background: var(--white);
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid var(--teal-main);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.delete-btn {
+    background-color: var(--danger);
+}
+
+/* Grid Layouts for specific pages */
+.grid-3-col {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.col {
+    background: var(--white);
+    padding: 15px;
+    border-radius: 8px;
+}
+
+/* Forms */
+.form-group {
+    margin-bottom: 15px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+/* Alerts */
+.alert-banner {
+    background-color: var(--danger);
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: bold;
+}
