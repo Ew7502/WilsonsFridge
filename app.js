@@ -46,7 +46,6 @@ async function addItem(event) {
     const date = document.getElementById('item-date').value || null;
     const qty = document.getElementById('item-qty').value;
 
-    // CHANGE: Gather all checked boxes and join them into a list (e.g., "Sweet, Reserved")
     const checkboxes = document.querySelectorAll('input[name="category"]:checked');
     const categories = Array.from(checkboxes).map(cb => cb.value).join(', ');
 
@@ -71,6 +70,26 @@ async function deleteItem(id) {
     await fetchItems(); 
     showPage(document.getElementById('content-area').dataset.currentPage); 
 }
+
+// NEW: Function to update the quantity up or down!
+async function updateQuantity(id, currentQty, change) {
+    const newQty = currentQty + change;
+    
+    // Don't let it go to 0 or negative. Use the Remove button for that!
+    if (newQty < 1) return; 
+
+    // Tell Supabase to update just this one number
+    const { error } = await supabaseClient
+        .from('fridge_items')
+        .update({ quantity: newQty })
+        .eq('id', id);
+
+    if (!error) {
+        await fetchItems(); // Get fresh data
+        showPage(document.getElementById('content-area').dataset.currentPage); // Refresh page
+    }
+}
+
 
 // --- 4. PAGE RENDERING ---
 function showPage(page) {
@@ -106,7 +125,6 @@ function showPage(page) {
             </div>
         `;
         currentItems.forEach(item => {
-            // CHANGE: Now we use .includes() to check if Reserved is anywhere in the tags
             if(!item.use_by_date || item.category.includes('Reserved')) return;
             const html = createItemHTML(item);
             
@@ -116,7 +134,6 @@ function showPage(page) {
     }
     else if (page === 'donoteat') {
         content.innerHTML = `<h2>🚫 DO NOT EAT (Reserved)</h2>`;
-        // CHANGE: Filter uses .includes()
         const reserved = currentItems.filter(i => i.category.includes('Reserved'));
         reserved.forEach(item => content.innerHTML += createItemHTML(item));
     }
@@ -125,7 +142,6 @@ function showPage(page) {
         currentItems.forEach(item => content.innerHTML += createItemHTML(item));
     }
     else if (page === 'additem') {
-        // CHANGE: Replaced the dropdown with checkboxes
         content.innerHTML = `
             <h2>Add New Item</h2>
             <form onsubmit="addItem(event)" style="max-width: 400px; background: white; padding: 20px; border-radius: 8px;">
@@ -156,13 +172,18 @@ function showPage(page) {
     }
 }
 
-// Helper to generate the HTML
+// UPDATE: We added simple +/- buttons next to the quantity
 function createItemHTML(item) {
     const dateText = item.use_by_date ? `<br><small>Use by: ${item.use_by_date}</small>` : '';
     return `
         <div class="item-card">
             <div>
-                <strong>${item.name}</strong> (Qty: ${item.quantity})
+                <strong>${item.name}</strong> 
+                <span style="margin-left: 15px; background: #e0f2f1; padding: 5px; border-radius: 5px;">
+                    <button type="button" onclick="updateQuantity(${item.id}, ${item.quantity}, -1)" style="padding: 2px 8px; margin: 0 5px;">-</button>
+                    Qty: <strong>${item.quantity}</strong>
+                    <button type="button" onclick="updateQuantity(${item.id}, ${item.quantity}, 1)" style="padding: 2px 8px; margin: 0 5px;">+</button>
+                </span>
                 <br><small><i>Tags: ${item.category}</i></small>
                 ${dateText}
             </div>
@@ -171,18 +192,15 @@ function createItemHTML(item) {
     `;
 }
 
-// Helper for the Snacks sub-menu
 window.renderList = function(type) {
     const area = document.getElementById('sub-list-area');
     area.innerHTML = `<h3>${type}</h3>`;
     
-    // CHANGE: Filter uses .includes() to handle multiple categories
     let filtered = currentItems.filter(i => !i.category.includes('Reserved'));
     
     if (type !== 'All Snacks') {
         filtered = filtered.filter(i => i.category.includes(type));
     } else {
-        // If "All Snacks", only show items that are Savoury or Sweet
         filtered = filtered.filter(i => i.category.includes('Savoury') || i.category.includes('Sweet'));
     }
     
@@ -192,7 +210,6 @@ window.renderList = function(type) {
 
 function checkExpiredItems() {
     const today = new Date().toISOString().split('T')[0];
-    // CHANGE: Filter uses .includes()
     const expired = currentItems.filter(i => i.use_by_date && i.use_by_date <= today && !i.category.includes('Reserved'));
     
     const alertBox = document.getElementById('alerts-container');
